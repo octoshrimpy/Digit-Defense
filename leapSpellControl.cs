@@ -26,10 +26,12 @@ public class leapSpellControl : MonoBehaviour {
     const float CHARGE_PERIOD = 3.0F;
     const float DISCHARGE_PERIOD = 0.5F;
     public GameObject display;
+    GameObject followSpell;
     Hand left_hand;
     Hand right_hand;
     handShape activeShape;
     UnityEngine.UI.Image i;
+    handShape currentHandshape;
 
 	// Use this for initialization
 	void Start () {
@@ -49,7 +51,7 @@ public class leapSpellControl : MonoBehaviour {
         Frame frame = provider.CurrentFrame;
         left_hand = null;
         right_hand = null;
-        handShape currentHandshape;
+        
 
         if (frame.Hands.Count > 0)
         {
@@ -68,75 +70,95 @@ public class leapSpellControl : MonoBehaviour {
             }
             
         }
-        
 
-        if(!(left_hand == null) && !(right_hand == null))
+        if (!(right_hand == null))
         {
-            //do stuff
-            //check right hand for fist
             if (isRightHandFist())
             {
-                //check left hand for shape
-                currentHandshape = getLeftHandShape();
-                if(currentHandshape == handShape.none)
+                if (curState == state.spellHeld)
                 {
-                    noHandStates();
+                    stateTimer = .23F;
+                    followSpell.transform.position = right_hand.PalmPosition.ToVector3();
+                }
+                else if (!(left_hand == null))
+                {
+                    //do stuff
+                    //check right hand for fist
+
+
+                    handShapeDecision();
+
+                    //else noHandStates
+
                 }
                 else
                 {
-                    //correct hand shape
-                    if(currentHandshape != activeShape)
-                    {
-                        //Change spell and reset Timer PUT CHANGE IN COLOR I HERE
-                        curState = state.loadingSpell;
-                        activeShape = currentHandshape;
-                        spellTimer = CHARGE_PERIOD;
-
-                        switch(activeShape)
-                        {
-                            case handShape.air: i.color = new Color(1.0F, 1.0F, 1.0F); break;
-                            case handShape.water: i.color = new Color(0F, 0F, 1.0F); break;
-                            case handShape.earth: i.color = new Color(0F, 1.0F, 0F); break;
-                            case handShape.fire: i.color = new Color(1.0F, 0F, 0F); break;
-                        }
-
-
-                    }
-                    else
-                    {
-                        if(spellTimer > 0)
-                        {
-                            spellTimer -= Time.deltaTime;
-                        }
-                        else
-                        {
-                            //Cast Spell
-                            curState = state.spellHeld;
-                            GameObject cloneObject = getActiveSpell();
-                            cloneObject.transform.position = right_hand.PalmPosition.ToVector3();
-                            Instantiate(cloneObject);
-                            activeShape = handShape.none;
-
-                            spellTimer = CHARGE_PERIOD;
-                        }
-                    }
+                    noHandStates();
                 }
+                
             }
             else
             {
                 noHandStates();
-                //else noHandStates
             }
         }
         else
         {
             noHandStates();
         }
-
         
         i.color = new Color(i.color.r, i.color.g, i.color.b, 1 - spellTimer / CHARGE_PERIOD);
 
 	}
+
+    void handShapeDecision()
+    {
+        //check left hand for shape
+        currentHandshape = getLeftHandShape();
+        if (currentHandshape == handShape.none)
+        {
+            noHandStates();
+        }
+        else
+        {
+            //correct hand shape
+            if (currentHandshape != activeShape)
+            {
+                //Change spell and reset Timer PUT CHANGE IN COLOR I HERE
+                curState = state.loadingSpell;
+                activeShape = currentHandshape;
+                spellTimer = CHARGE_PERIOD;
+
+                switch (activeShape)
+                {
+                    case handShape.air: i.color = new Color(1.0F, 1.0F, 1.0F); break;
+                    case handShape.water: i.color = new Color(0F, 0F, 1.0F); break;
+                    case handShape.earth: i.color = new Color(0F, 1.0F, 0F); break;
+                    case handShape.fire: i.color = new Color(1.0F, 0F, 0F); break;
+                }
+
+
+            }
+            else
+            {
+                if (spellTimer > 0)
+                {
+                    spellTimer -= Time.deltaTime;
+                }
+                else
+                {
+                    //Cast Spell
+                    curState = state.spellHeld;
+                    GameObject cloneObject = getActiveSpell();
+                    cloneObject.transform.position = right_hand.PalmPosition.ToVector3();
+                    followSpell = Instantiate(cloneObject);
+                    activeShape = handShape.none;
+                    stateTimer = .23F;
+                    spellTimer = CHARGE_PERIOD;
+                }
+            }
+        }
+    }
 
     GameObject getActiveSpell()
     {
@@ -198,7 +220,19 @@ public class leapSpellControl : MonoBehaviour {
     {
         switch(curState)
         {
-           
+            case state.spellHeld:
+                if(stateTimer > 0)
+                {
+                    stateTimer -= Time.deltaTime;
+                    followSpell.transform.position = right_hand.PalmPosition.ToVector3();
+
+                }
+                else
+                {
+                    curState = state.noSpell;
+                    followSpell = null;
+                }
+                break;
             case state.dischargingSpell: 
                 //decrement counter
                 if(spellTimer < CHARGE_PERIOD)
