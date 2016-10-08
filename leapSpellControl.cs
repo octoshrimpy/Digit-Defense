@@ -82,6 +82,7 @@ public class leapSpellControl : MonoBehaviour {
                 }
                 else if (!(left_hand == null))
                 {
+                    //filler comment
                     //do stuff
                     //check right hand for fist
 
