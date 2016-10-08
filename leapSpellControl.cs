@@ -2,6 +2,7 @@
 using System.Collections;
 using Leap.Unity;
 using Leap;
+using UnityEngine.UI;
 
 public class leapSpellControl : MonoBehaviour {
 
@@ -24,25 +25,27 @@ public class leapSpellControl : MonoBehaviour {
     float spellTimer;
     const float CHARGE_PERIOD = 3.0F;
     const float DISCHARGE_PERIOD = 0.5F;
+    public GameObject display;
     Hand left_hand;
     Hand right_hand;
     handShape activeShape;
-    bool rightHandFist;
+    UnityEngine.UI.Image i;
 
 	// Use this for initialization
 	void Start () {
         provider = FindObjectOfType<LeapProvider>() as LeapProvider;
-
+        UnityEngine.UI.Image i = display.GetComponent<UnityEngine.UI.Image>();
+        i.color = (new Color(255, 255, 255, 0));
         curState = state.noSpell;
         fireSpell = (GameObject) Resources.Load("fire" );
         waterSpell = (GameObject)Resources.Load("water");
         airSpell = (GameObject)Resources.Load("air");
         earthSpell = (GameObject)Resources.Load("earth");
-        rightHandFist = false;
 	}
 	
 	// Update is called once per frame
 	void Update () {
+        i = display.GetComponent<UnityEngine.UI.Image>();
         Frame frame = provider.CurrentFrame;
         left_hand = null;
         right_hand = null;
@@ -63,8 +66,7 @@ public class leapSpellControl : MonoBehaviour {
                 }
 
             }
-            if(right_hand != null)
-            rightHandFist = isRightHandFist();
+            
         }
         
 
@@ -85,8 +87,20 @@ public class leapSpellControl : MonoBehaviour {
                     //correct hand shape
                     if(currentHandshape != activeShape)
                     {
+                        //Change spell and reset Timer PUT CHANGE IN COLOR I HERE
+                        curState = state.loadingSpell;
                         activeShape = currentHandshape;
                         spellTimer = CHARGE_PERIOD;
+
+                        switch(activeShape)
+                        {
+                            case handShape.air: i.color = new Color(1.0F, 1.0F, 1.0F); break;
+                            case handShape.water: i.color = new Color(0F, 0F, 1.0F); break;
+                            case handShape.earth: i.color = new Color(0F, 1.0F, 0F); break;
+                            case handShape.fire: i.color = new Color(1.0F, 0F, 0F); break;
+                        }
+
+
                     }
                     else
                     {
@@ -96,10 +110,13 @@ public class leapSpellControl : MonoBehaviour {
                         }
                         else
                         {
+                            //Cast Spell
                             curState = state.spellHeld;
                             GameObject cloneObject = getActiveSpell();
-                            Debug.Log(cloneObject.name);
+                            cloneObject.transform.position = right_hand.PalmPosition.ToVector3();
+                            Instantiate(cloneObject);
                             activeShape = handShape.none;
+
                             spellTimer = CHARGE_PERIOD;
                         }
                     }
@@ -111,12 +128,13 @@ public class leapSpellControl : MonoBehaviour {
                 //else noHandStates
             }
         }
-        
         else
         {
             noHandStates();
         }
 
+        
+        i.color = new Color(i.color.r, i.color.g, i.color.b, 1 - spellTimer / CHARGE_PERIOD);
 
 	}
 
@@ -183,9 +201,9 @@ public class leapSpellControl : MonoBehaviour {
            
             case state.dischargingSpell: 
                 //decrement counter
-                if(stateTimer > 0)
+                if(spellTimer < CHARGE_PERIOD)
                 {
-                    stateTimer -= Time.deltaTime;
+                    spellTimer += Time.deltaTime;
                 }
                 else
                 {
